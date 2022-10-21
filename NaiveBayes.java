@@ -16,6 +16,7 @@ public class NaiveBayes {
 	private double[] probZerosGivenOnes;
 	
 	public double logLikelihood;
+	public double accuracy;
 	
 	public NaiveBayes() {
 		numObservations = 0;
@@ -127,7 +128,7 @@ public class NaiveBayes {
 		ret += "\nCorrect classifications made: ";
 		ret += correct;
 		ret += "\nAccuracy: ";
-		double accuracy = 1.0 * correct / total;
+		accuracy = 1.0 * correct / total;
 		ret += accuracy;
 		
 		return ret;

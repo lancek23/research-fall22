@@ -20,6 +20,9 @@ public class FractionalWBNB {
 	public double avgLL;
 	public double accuracy;
 	
+	// Only used if based on another classifiers parameters
+	public double L2Error;
+	
 	// Used for Dynamic Programming
 	private Parameter[] params;
 	private Cell[][] table;
@@ -106,6 +109,53 @@ public class FractionalWBNB {
 		
 	} // trainClassifier
 	
+	// Set parameters based on parameters from another classifier with a given number of observations
+	public void trainClassifierByParameters(File classifier) throws Exception {
+		
+		Scanner fileScanner = new Scanner(classifier);
+		
+		String line = fileScanner.nextLine();
+		fileScanner.close();
+		String[] values = line.split(",");
+		
+		numParams = values.length;
+		positiveExamples = new int[numParams];
+		negativeExamples = new int[numParams];
+		paramValues = new double[numParams];
+			
+		numObservations = 100000;
+		
+		for(int i = 0; i < numParams; i++) {
+			double ratio = Math.exp(Double.parseDouble(values[i]));
+			
+			positiveExamples[i] = (int) Math.round((numObservations * ratio) / (1 + ratio));
+			negativeExamples[i] = numObservations - positiveExamples[i];
+		} // for
+		
+		assignWeights();
+		
+		// Compute log likelihood
+		for(int i = 0; i < numParams; i++) {
+			logLikelihood += positiveExamples[i] * Math.log(sigmoid(paramValues[i]));
+			logLikelihood += negativeExamples[i] * Math.log(sigmoid(-paramValues[i]));
+		} // for
+		avgLL = logLikelihood / numObservations;
+		
+		computeL2Error(values);
+		
+	} // trainClassifier
+	
+	private void computeL2Error(String[] modelParams) {
+		
+		L2Error = 0;
+		
+		// Cycle parameters
+		for(int i = 0; i < paramValues.length; i++) {
+			L2Error += Math.pow(paramValues[i] - Double.parseDouble(modelParams[i]), 2);
+		} // for
+		
+	} // computeKLDivergence
+	
 	private double sigmoid(double num) {
 		double ret = 1 / (1 + Math.pow(Math.E, -num));
 		if(ret == Double.POSITIVE_INFINITY || ret == Double.NEGATIVE_INFINITY ||  Double.compare(-0.0f, ret) == 0 || Double.compare(+0.0f, ret) == 0) {
@@ -130,14 +180,14 @@ public class FractionalWBNB {
 		Cell c = generateCellRecursively(numParams - 1, table[table.length - 1].length - 1);
 		
 		// COMMENT THIS OUT TO FORCE USE OF ENTIRE WEIGHT BUDGET
-//		// Let's check final row to see if we should use less weight
-//		for(int i = 0; i < table[table.length - 1].length - 1; i++) {
-//			// The final row never gets generated so we have to make it
-//			table[table.length - 1][i] = generateCellRecursively(table.length - 1, i);
-//			if(table[table.length - 1][i].logLikelihood > c.logLikelihood) {
-//				c = table[table.length - 1][i];
-//			} // if
-//		} // for
+		// Let's check final row to see if we should use less weight
+		for(int i = 0; i < table[table.length - 1].length - 1; i++) {
+			// The final row never gets generated so we have to make it
+			table[table.length - 1][i] = generateCellRecursively(table.length - 1, i);
+			if(table[table.length - 1][i].logLikelihood > c.logLikelihood) {
+				c = table[table.length - 1][i];
+			} // if
+		} // for
 		
 		for(int i = 0; i < numParams; i++) {
 			paramValues[i] = c.weights[i];
@@ -301,8 +351,16 @@ public class FractionalWBNB {
 	} // Cell class
 	
 	// Return the list of parameters for the purposes of calculating KL-Divergence
-	public double[] getParams() {
-		return paramValues;
+	public String getParams() {
+		StringBuilder data2 = new StringBuilder();
+		
+		for(int i = 0;  i < paramValues.length - 1; i++) {
+			data2.append(paramValues[i]);
+			data2.append(", ");
+		} // for
+		data2.append(paramValues[paramValues.length - 1]);
+		
+		return data2.toString();
 	} // getParams
 
 } // class

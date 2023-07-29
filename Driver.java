@@ -15,91 +15,84 @@ public class Driver {
 
 	public static void main(String[] args) throws Exception{
 		
-		// Create files
-		//updateFile("Digit 1, Digit 2, Weight, Grade, Avg LL, Accuracy, Log Reg Accuracy, L2 Error\n", "C:\\Users\\lance\\Documents\\GRA Stuff\\Generated Data\\log-reg-emulation-3.txt");
-		
-		// Create classifiers
-		FractionalWBNB classifier;
-		
 		// Cycle first digit
-		for(int i = 0; i < 9; i++) {
+		for(int i = 0; i <= 8; i++) {
 			// Cycle second digit
-			for(int j = i + 1; j < 10; j++) {
+			for(int j = i + 1; j <= 9; j++) {
 				
-				// Cycle weight
-				for(int w = 150; w <= 150; w += 10) {
-					// Cycle grade
-					for(int g = 6; g < 8; g++) {
-						classifier = new FractionalWBNB(w, g);
-						classifier.trainClassifierByParameters(new File("C:\\Users\\lance\\Documents\\GRA Stuff\\Python Files\\LogRegParams\\Attempt3\\params-" + i + "-" + j + ".txt"));
-						classifier.testClassifier(new File("C:\\Users\\lance\\Documents\\GRA Stuff\\Python Files\\Digit datasets\\binarize-normal\\testing-" + i + "-" + j + ".txt"));
+				int w = 100;
+				int g = 5;
+				
+				System.out.printf("Testing %d vs %d with weight %d and grade %d%n", i, j, w, g);
+				
+				// Get existing original parameters and approximated parameters
+				String dataPath = "C:/Users/lance/Documents/GRA Stuff/Network/Data/Attempt9/network-" + i + "-" + j + "/";
+				String budget = "Budget: " + w;
+				String grade = "Grade: " + g;
+				
+				// Create network
+				int[] layerSizes = {2, 1};
+				Network neuralNetwork = new Network(layerSizes);
+				
+				try {
+					Scanner fs = new Scanner(new File(dataPath + "approximation.txt"));
 					
-//						StringBuilder data2 = new StringBuilder();
-//						data2.append(i);
-//						data2.append(", ");
-//						data2.append(j);
-//						data2.append(", ");
-//						data2.append(w);
-//						data2.append(", ");
-//						data2.append(g);
-//						data2.append(", ");
-//						data2.append(classifier.avgLL);
-//						data2.append(", ");
-//						data2.append(classifier.accuracy);
-//						data2.append(", ");
-//						Scanner fileScanner = new Scanner(new File("C:\\Users\\lance\\Documents\\GRA Stuff\\Python Files\\LogRegParams\\Attempt3\\accuracy-" + i + "-" + j + ".txt"));
-//						data2.append(fileScanner.next());
-//						data2.append(", ");
-//						data2.append(classifier.L2Error);
-//						data2.append("\n");
-//						updateFile(data2.toString(), "C:\\Users\\lance\\Documents\\GRA Stuff\\Generated Data\\log-reg-emulation-3.txt");
-//						System.out.print(data2.toString());
-						
-						updateFile(classifier.getParams(), "C:\\Users\\lance\\Documents\\GRA Stuff\\Generated Data\\Parameters-grade-" + g + "\\approximation-parameters-" + i + "-" + j + ".txt");
-						System.out.printf("Grade: %d - (%d, %d)%n", g, i, j);
+					while(fs.hasNextLine()) {
+						if(fs.nextLine().equals(budget) && fs.nextLine().equals(grade)) {
+							
+							// Move through accuracy and open line
+							fs.nextLine();
+							fs.nextLine();
+							
+							// Cycle hidden neurons
+							for(int n = 0; n < layerSizes[0]; n++) {
+								// Get hidden neuron weights (ignoring title line and blank following line)
+								fs.nextLine();
+								String hidden = fs.nextLine();
+								String[] hiddenArr = hidden.split(", ");
+								fs.nextLine();
+								
+								System.out.printf("Building hidden neuron %d%n", n);
+								neuralNetwork.layers[0][n] = new FractionalWBNB(w, g);
+								neuralNetwork.layers[0][n].setParameters(new File(dataPath + "hidden-neuron-" + n + ".txt"), hiddenArr);
+							} // for
+							
+							// Get output neuron weights (ignoring title line)
+							fs.nextLine();
+							String output = fs.nextLine();
+							String[] outputArr = output.split(", ");
+							System.out.println("Building output neuron");
+							neuralNetwork.layers[1][0] = new FractionalWBNB(w, g);
+							neuralNetwork.layers[1][0].setParameters(new File(dataPath + "output-neuron-0.txt"), outputArr);
+							
+						} // if
+					} // while
+					
+				} // try
+				catch(Exception e) {
+					System.out.println("D^:");
+					e.printStackTrace();
+				} // catch
+				
+				// Testing network
+				System.out.println("Testing network...");
+				String results = neuralNetwork.testNetwork(new File("C:\\Users\\lance\\Documents\\GRA Stuff\\Python Files\\Digit datasets\\binarize-normal\\testing-" + i + "-" + j + ".txt"));
+				System.out.println(results);
+				
+				// Calculating average error across network
+				double totalError = 0;
+				int totalParams = 0;
+				for(int row = 0; row < neuralNetwork.layers.length; row++) {
+					for(int col = 0; col < neuralNetwork.layers[row].length; col++) {
+						totalError += neuralNetwork.layers[row][col].L2Error;
+						totalParams += neuralNetwork.layers[row][col].getNumParams();
 					} // for
 				} // for
+				System.out.println("Average error: " + (totalError / totalParams));
+
 			} // for
+
 		} // for
-		
-//		// Create files
-//		updateFile("Digit 1, Digit 2, Weight, Grade, Avg LL, Accuracy\n", "C:\\Users\\lance\\Documents\\GRA Stuff\\Generated Data\\all-digits-with-bottom-row.txt");
-//		
-//		// Create classifiers
-//		FractionalWBNB classifier;
-//		
-//		// Cycle first digit
-//		for(int i = 0; i < 9; i++) {
-//			// Cycle second digit
-//			for(int j = i + 1; j < 10; j++) {
-//				
-//				// Cycle weight
-//				for(int w = 10; w <= 150; w += 10) {
-//					// Cycle grade
-//					for(int g = 1; g <= 5; g++) {
-//						classifier = new FractionalWBNB(w, g);
-//						classifier.trainClassifier(new File("C:\\Users\\lance\\Documents\\GRA Stuff\\Arthur-binarized\\balanced\\training-" + i + "-" + j + ".txt"));
-//						classifier.testClassifier(new File("C:\\Users\\lance\\Documents\\GRA Stuff\\Arthur-binarized\\balanced\\testing-" + i + "-" + j + ".txt"));
-//						StringBuilder data2 = new StringBuilder();
-//						data2.append(i);
-//						data2.append(", ");
-//						data2.append(j);
-//						data2.append(", ");
-//						data2.append(w);
-//						data2.append(", ");
-//						data2.append(g);
-//						data2.append(", ");
-//						data2.append(classifier.avgLL);
-//						data2.append(", ");
-//						data2.append(classifier.accuracy);
-//						data2.append("\n");
-//						updateFile(data2.toString(), "C:\\Users\\lance\\Documents\\GRA Stuff\\Generated Data\\all-digits-with-bottom-row.txt");
-//						System.out.print(data2.toString());
-//					} // for
-//				} // for
-//				
-//			} // for
-//		} // for
 		
 	} // main
 

@@ -79,6 +79,7 @@ public class LinearNaiveBayes {
 		for(int i = 0; i < numParams; i++) {
 			// add 1 to avoid dividing by zero
 			paramValues[i] = Math.log(((positiveExamples[i] * 1.0) + 1) / (negativeExamples[i] + 1));
+			//paramValues[i] = Math.log(((positiveExamples[i] * 1.0)) / (negativeExamples[i]));
 		} // for
 		
 		// Compute log likelihood

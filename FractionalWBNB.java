@@ -130,9 +130,11 @@ public class FractionalWBNB {
 			
 			positiveExamples[i] = (int) Math.round((numObservations * ratio) / (1 + ratio));
 			negativeExamples[i] = numObservations - positiveExamples[i];
+			
+			//paramValues[i] = Double.parseDouble(values[i]); //ACACAC: add this
 		} // for
 		
-		assignWeights();
+		assignWeights(); //ACACAC: comment out this
 		
 		// Compute log likelihood
 		for(int i = 0; i < numParams; i++) {
@@ -144,6 +146,41 @@ public class FractionalWBNB {
 		computeL2Error(values);
 		
 	} // trainClassifier
+	
+	// Sets parameters to an exact given value, no need for DP algorithm to train
+	// We also take the filepath to the original classifier as input, so that we can compute L2 Error
+	public void setParameters(File classifier, String[] values) throws Exception {
+		
+		numParams = values.length;
+		positiveExamples = new int[numParams];
+		negativeExamples = new int[numParams];
+		paramValues = new double[numParams];
+			
+		numObservations = 100000;
+		
+		for(int i = 0; i < numParams; i++) {
+			double ratio = Math.exp(Double.parseDouble(values[i]));
+			
+			positiveExamples[i] = (int) Math.round((numObservations * ratio) / (1 + ratio));
+			negativeExamples[i] = numObservations - positiveExamples[i];
+			
+			paramValues[i] = Double.parseDouble(values[i]); //ACACAC: add this
+		} // for
+		
+		// Compute log likelihood
+		for(int i = 0; i < numParams; i++) {
+			logLikelihood += positiveExamples[i] * Math.log(sigmoid(paramValues[i]));
+			logLikelihood += negativeExamples[i] * Math.log(sigmoid(-paramValues[i]));
+		} // for
+		avgLL = logLikelihood / numObservations;
+		
+		Scanner fileScanner = new Scanner(classifier);
+		String line = fileScanner.nextLine();
+		fileScanner.close();
+		String[] originalParams = line.split(",");
+		computeL2Error(originalParams);
+		
+	} // setParameters
 	
 	private void computeL2Error(String[] modelParams) {
 		
@@ -304,6 +341,72 @@ public class FractionalWBNB {
 		return 0;
 	} // predict
 	
+	// Return a prediction for the class of a given observation based on its known values (as doubles)
+	public int predict(int[] values) {
+		double exponent = paramValues[0];
+		for(int i = 0; i < values.length - 1; i++) {
+			// Parameter value is 0, but in our case we use -1
+			if(values[i] == 0) {
+				exponent -= paramValues[i+1];
+			} // if
+			// Parameter value is 1
+			else {
+				exponent += paramValues[i+1];
+			} // else
+		} // for
+		
+		// Do this instead of computing sigmoid
+		if(exponent >= 0) {
+			return 1;
+		} // if
+		
+		return 0;
+	} // predict
+	
+	// Returns a prediction for the output for use in the Network class
+	// The difference is just that it will use EVERY value, expecting that the last one is not a class label
+	public int networkPrediction(int[] values) {
+		
+		double exponent = paramValues[0];
+		// Use EVERY value, as last one is NOT a class label
+		for(int i = 0; i < values.length; i++) {
+			// Parameter value is 0, but in our case we use -1
+			if(values[i] == 0) {
+				exponent -= paramValues[i+1];
+			} // if
+			// Parameter value is 1
+			else {
+				exponent += paramValues[i+1];
+			} // else
+		} // for
+		
+		// Do this instead of computing sigmoid
+		if(exponent >= 0) {
+			return 1;
+		} // if
+		
+		return 0;
+		
+	} // networkPrediction
+	
+	// Return the output for a given observation based on its known values
+	// I thought I would need this for the full network, but now I don't think so
+	public double output(String[] values) {
+		double exponent = paramValues[0];
+		for(int i = 0; i < values.length - 1; i++) {
+			// Parameter value is 0, but in our case we use -1
+			if(Integer.parseInt(values[i]) == 0) {
+				exponent -= paramValues[i+1];
+			} // if
+			// Parameter value is 1
+			else {
+				exponent += paramValues[i+1];
+			} // else
+		} // for
+		
+		return sigmoid(exponent);
+	} // output
+	
 //	public void printTableBottomRow() {
 //		System.out.println("Final row of table");
 //		for(int i = 0; i < table[table.length - 1].length; i++) {
@@ -362,5 +465,13 @@ public class FractionalWBNB {
 		
 		return data2.toString();
 	} // getParams
+	
+	public double[] getParamsAsArray() {
+		return paramValues;
+	} // getParamsAsArray
+	
+	public int getNumParams() {
+		return paramValues.length;
+	} // getNumParams
 
 } // class
